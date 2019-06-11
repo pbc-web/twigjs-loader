@@ -42,6 +42,7 @@ function twigLoader(source) {
 }
 
 async function compile(loaderApi, template) {
+  const query = utils.getOptions(this) || {};
   let dependencies = [];
   await each(template.tokens, processToken);
 
@@ -59,6 +60,24 @@ async function compile(loaderApi, template) {
   return `
     ${dependenciesString}
     var twig = require("twig").twig;
+    const query = ${query};
+
+    if (query.cache !== true) {
+      twig.cache(false);
+    }
+  
+    if (query.functions) {
+      Object.entries(query.functions).forEach(([name, fn]) => twig.extendFunction(name, fn));
+    }
+  
+    if (query.filters) {
+      Object.entries(query.filters).forEach(([name, fn]) => twig.extendFilter(name, fn));
+    }
+  
+    if (query.tests) {
+      Object.entries(query.tests).forEach(([name, fn]) => twig.extendTest(name, fn));
+    }
+
     var tpl = twig(${JSON.stringify(twigData)});
     module.exports = function(context) { return tpl.render(context); };
     module.exports.id = ${JSON.stringify(template.id)};
