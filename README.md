@@ -33,6 +33,7 @@ module.exports = {
       {
         test: /\.twig$/,
         use: 'twigjs-loader',
+        options: {}
       },
       ...
   },
@@ -40,6 +41,15 @@ module.exports = {
 }
 
 ```
+
+### Options
+
+|Name|Type|Default|Description|
+|--|--|-----|----------|
+|cache|boolean|false|Enables the Twigjs cache|
+|functions|object|undefined|Extends Twig with custom functions
+|filters|object|undefined|Extends Twig with custom filters
+|tests|object|undefined|Extends Twig with custom tests
 
 ### With Express
 

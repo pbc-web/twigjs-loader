@@ -2,15 +2,31 @@
 
 const path = require('path');
 const Twig = require('twig');
+const utils = require('loader-utils');
 
 module.exports = twigLoader;
 module.exports.ExpressView = ExpressView;
 module.exports.default = module.exports;
 
-Twig.cache(false);
-
 function twigLoader(source) {
   const callback = this.async();
+  const query = utils.getOptions(this) || {};
+
+  if (query.cache !== true) {
+    Twig.cache(false);
+  }
+
+  if (query.functions) {
+    Object.entries(query.functions).forEach(([name, fn]) => Twig.extendFunction(name, fn));
+  }
+
+  if (query.filters) {
+    Object.entries(query.filters).forEach(([name, fn]) => Twig.extendFilter(name, fn));
+  }
+
+  if (query.tests) {
+    Object.entries(query.tests).forEach(([name, fn]) => Twig.extendTest(name, fn));
+  }
 
   const template = Twig.twig({
     allowInlineIncludes: true,
