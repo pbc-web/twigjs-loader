@@ -8,24 +8,20 @@ module.exports = twigLoader;
 module.exports.ExpressView = ExpressView;
 module.exports.default = module.exports;
 
+Twig.cache(false);
+
 function twigLoader(source) {
   const callback = this.async();
-  const query = utils.getOptions(this) || {};
+  const options = utils.getOptions(this) || {};
+  let stringOptions = {};
 
-  if (query.cache !== true) {
-    Twig.cache(false);
-  }
+  if (options.functions) {
+    stringOptions.functions = {};
 
-  if (query.functions) {
-    Object.entries(query.functions).forEach(([name, fn]) => Twig.extendFunction(name, fn));
-  }
-
-  if (query.filters) {
-    Object.entries(query.filters).forEach(([name, fn]) => Twig.extendFilter(name, fn));
-  }
-
-  if (query.tests) {
-    Object.entries(query.tests).forEach(([name, fn]) => Twig.extendTest(name, fn));
+    Object.entries(options.functions).forEach(([name, fn]) => {
+      stringOptions.functions[name] = `Twig.extendFunction('${name}', ${String(fn)});`;
+      return Twig.extendFunction(name, fn);
+    });
   }
 
   const template = Twig.twig({
@@ -36,13 +32,12 @@ function twigLoader(source) {
     rethrow: true,
   });
 
-  compile(this, template)
+  compile(this, template, stringOptions)
     .then(output => callback(null, output))
     .catch(err => callback(err));
 }
 
-async function compile(loaderApi, template) {
-  const query = utils.getOptions(this) || {};
+async function compile(loaderApi, template, options) {
   let dependencies = [];
   await each(template.tokens, processToken);
 
@@ -57,28 +52,17 @@ async function compile(loaderApi, template) {
     .map(d => `require(${JSON.stringify(d)});`)
     .join('\n');
 
+  let functions = '';
+  Object.entries(options.functions).forEach(function(entry) {
+    functions += entry[1];
+    return;
+  });
+
   return `
     ${dependenciesString}
-    var twig = require("twig").twig;
-    const query = ${query};
-
-    if (query.cache !== true) {
-      twig.cache(false);
-    }
-  
-    if (query.functions) {
-      Object.entries(query.functions).forEach(([name, fn]) => twig.extendFunction(name, fn));
-    }
-  
-    if (query.filters) {
-      Object.entries(query.filters).forEach(([name, fn]) => twig.extendFilter(name, fn));
-    }
-  
-    if (query.tests) {
-      Object.entries(query.tests).forEach(([name, fn]) => twig.extendTest(name, fn));
-    }
-
-    var tpl = twig(${JSON.stringify(twigData)});
+    var Twig = require("twig");
+    ${functions}
+    var tpl = Twig.twig(${JSON.stringify(twigData)});
     module.exports = function(context) { return tpl.render(context); };
     module.exports.id = ${JSON.stringify(template.id)};
     module.exports.default = module.exports;
