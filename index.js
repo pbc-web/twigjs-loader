@@ -5,7 +5,7 @@ const Twig = require('twig');
 const utils = require('loader-utils');
 
 module.exports = twigLoader;
-module.exports.ExpressView = ExpressView;
+
 module.exports.default = module.exports;
 
 Twig.cache(false);
@@ -13,8 +13,11 @@ Twig.cache(false);
 function twigLoader(source) {
   const callback = this.async();
   const options = utils.getOptions(this) || {};
+  const namespaces = options.namespaces || {};
   let stringOptions = {};
 
+
+  /*
   if (options.functions) {
     stringOptions.functions = {};
 
@@ -24,28 +27,36 @@ function twigLoader(source) {
     });
   }
 
+  */
   const template = Twig.twig({
     allowInlineIncludes: true,
     data: source,
     id: makeTemplateId(this, this.resourcePath),
     path: this.resourcePath,
     rethrow: true,
+    namespaces: namespaces
   });
 
   compile(this, template, stringOptions)
     .then(output => callback(null, output))
     .catch(err => callback(err));
+    
+
+
 }
 
 async function compile(loaderApi, template, options) {
   let dependencies = [];
   await each(template.tokens, processToken);
 
+  const opts = utils.getOptions(loaderApi) || {};
+  //console.log(opts)
+
   const twigData = {
     allowInlineIncludes: true,
     data: template.tokens,
     id: template.id,
-    rethrow: true,
+    namespaces: opts.namespaces
   };
 
   const dependenciesString = unique(dependencies)
@@ -53,13 +64,15 @@ async function compile(loaderApi, template, options) {
     .join('\n');
 
   let functions = '';
-  Object.entries(options.functions).forEach(function(entry) {
-    functions += entry[1];
-    return;
-  });
+  //Object.entries(options.functions).forEach(function(entry) {
+  //  functions += entry[1];
+  //  return;
+  //});
+
+//  console.log( twigData)
 
   return `
-    ${dependenciesString}
+     ${dependenciesString}
     var Twig = require("twig");
     ${functions}
     var tpl = Twig.twig(${JSON.stringify(twigData)});
@@ -68,11 +81,12 @@ async function compile(loaderApi, template, options) {
     module.exports.default = module.exports;
   `.replace(/^\s+/gm, '');
 
+
   async function processDependency(token) {
-    const absolutePath = await resolveModule(loaderApi, token.value);
-    dependencies.push(token.value);
-    token.value = makeTemplateId(loaderApi, absolutePath);
-    loaderApi.addDependency(absolutePath);
+      const absolutePath = await resolveModule(loaderApi, token.value);
+      dependencies.push(token.value);
+      token.value = makeTemplateId(loaderApi, absolutePath);
+      loaderApi.addDependency(absolutePath);
   }
 
   async function processToken(token) {
@@ -142,6 +156,8 @@ function unique(arr) {
 /**
  * Render compiled twig template
  */
+
+ /*
 function ExpressView(view) {
   this.render = (options, callback) => {
     const variables = { ...options._locals, ...options };
@@ -149,3 +165,4 @@ function ExpressView(view) {
   };
   this.path = view.id;
 }
+*/
