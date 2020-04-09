@@ -17,7 +17,7 @@ function twigLoader(source) {
   let stringOptions = {};
 
 
-  /*
+  
   if (options.functions) {
     stringOptions.functions = {};
 
@@ -27,7 +27,7 @@ function twigLoader(source) {
     });
   }
 
-  */
+  
   const template = Twig.twig({
     allowInlineIncludes: true,
     data: source,
@@ -64,10 +64,10 @@ async function compile(loaderApi, template, options) {
     .join('\n');
 
   let functions = '';
-  //Object.entries(options.functions).forEach(function(entry) {
-  //  functions += entry[1];
-  //  return;
-  //});
+  Object.entries(options.functions).forEach(function(entry) {
+    functions += entry[1];
+    return;
+  });
 
 //  console.log( twigData)
 
